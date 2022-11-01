@@ -69,3 +69,17 @@ If you run into issues with installing `mujoco-py` (especially on MacOS), here a
   2. [Try this](https://github.com/hashicorp/terraform/issues/23033#issuecomment-543507812) if you run into developer verification issues (use due diligence when granting permissions to code from unfamiliar sources)
   3. StackOverflow is your friend, feel free to shamelessly look up your error and get in touch with your classmates or instructors
   4. If nothing works and you are frustrated beyond repair, consider using the Colab version of the homework!
+
+
+## Further notes
+
+  - use python3.7
+  - for mujoco
+    `$ sudo apt-get install python3.7-dev patchelf`
+
+  - for collab
+    `$ apt-get install -y libgl1-mesa-dev libgl1-mesa-glx libglew-dev libosmesa6-dev`
+    `$ apt-get install -y software-properties-common patchelf`
+    `$ pip install free-mujoco-py`
+
+

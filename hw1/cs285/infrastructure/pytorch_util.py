@@ -17,6 +17,35 @@ _str_to_activation = {
 }
 
 
+class MLP(nn.Module):
+    def __init__(
+            self,
+            input_size: int,
+            output_size: int,
+            n_layers: int,
+            size: int,
+            activation: nn.Module,
+            output_activation: nn.Module,
+        ):
+        super(MLP, self).__init__()
+        self.activation = activation
+        self.output_activation = output_activation
+        self.layers = nn.ModuleList([nn.Linear(input_size, size)])
+        self.layers.extend([nn.Linear(size, size) for i in range(1, n_layers-1)])
+        self.layers.append(nn.Linear(size, output_size))
+
+    def forward(self, x: torch.FloatTensor):
+        for idx, layer in enumerate(self.layers):
+            #print(f'idx: {idx}, len: {len(self.layers)}')
+            #print(f'dim x: {x.shape}, x[0, 0:3]: {x[0, 0:3]}')
+            x = layer(x)
+            if idx < len(self.layers) - 1:
+                x = self.activation(x)
+            else:
+                x = self.output_activation(x)
+        return x
+
+
 def build_mlp(
         input_size: int,
         output_size: int,
@@ -44,6 +73,14 @@ def build_mlp(
         activation = _str_to_activation[activation]
     if isinstance(output_activation, str):
         output_activation = _str_to_activation[output_activation]
+    return MLP(
+        input_size,
+        output_size,
+        n_layers,
+        size,
+        activation,
+        output_activation,
+    )
 
     # TODO: return a MLP. This should be an instance of nn.Module
     # Note: nn.Sequential is an instance of nn.Module.

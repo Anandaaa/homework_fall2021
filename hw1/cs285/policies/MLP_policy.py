@@ -55,7 +55,8 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             self.mean_net = ptu.build_mlp(
                 input_size=self.ob_dim,
                 output_size=self.ac_dim,
-                n_layers=self.n_layers, size=self.size,
+                n_layers=self.n_layers,
+                size=self.size,
             )
             self.mean_net.to(ptu.device)
             self.logstd = nn.Parameter(
@@ -66,6 +67,7 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
                 itertools.chain([self.logstd], self.mean_net.parameters()),
                 self.learning_rate
             )
+            print(f"created mlp: {self.mean_net}")
 
     ##################################
 
@@ -81,6 +83,7 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             observation = obs[None]
 
         # TODO return the action that the policy prescribes
+        return ptu.to_numpy(self.forward(ptu.from_numpy(observation)))
         raise NotImplementedError
 
     # update/train this policy
@@ -93,6 +96,19 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
     def forward(self, observation: torch.FloatTensor) -> Any:
+        if not isinstance(observation, torch.FloatTensor):
+            raise ValueError('observation should be of instance torch.FloatTensor not : {}'.format(type(observation)))
+        if self.discrete:
+            #print("discrete model")
+            actions = self.logits_na.forward(observation)
+        else:
+            #print("continuous model")
+            actions = self.mean_net.forward(observation)
+
+        #print(f"actions: {actions}")
+        #rint(f"actions size: {actions.size()}")
+
+        return actions
         raise NotImplementedError
 
 
@@ -109,7 +125,45 @@ class MLPPolicySL(MLPPolicy):
             adv_n=None, acs_labels_na=None, qvals=None
     ):
         # TODO: update the policy and return the loss
-        loss = TODO
+        if not isinstance(observations, torch.FloatTensor):
+            observations = torch.from_numpy(observations)
+        if not isinstance(actions, torch.FloatTensor):
+            actions = torch.from_numpy(actions)
+
+        #print(f'logits_na: "{self.logits_na}"')
+        #print(f'mean_net: "{self.mean_net}"')
+        #print(f'mean_net layers: "{self.mean_net.layers}"')
+        #print(f'mean_net out layer: "{self.mean_net.layers[-1]}"')
+        #print(f'mean_net out layer weights before step: "{self.mean_net.layer_1.weight[0:5,0:5]}"')
+
+        #print(f'mean_net parameters: {self.mean_net.named_parameters()}')
+        #for name, p in self.mean_net.named_parameters():
+        #    print(f'name: {name}, shape: {p.shape}, gradient: {p.grad}')
+
+        #print(f"observations: {observations}")
+        #print(f"observations size: {observations.size()}")
+
+        policy_actions = self.forward(observations)
+
+        #print(f"policy_actions size: {policy_actions.size()}")
+        #print(f"policy_actions[0:5,0:5]: {policy_actions[0:5,0:5]}")
+        #print(f"policy_actions size: {policy_actions.size()}")
+
+        #print(f"target actions size: {actions.size()}")
+        #print(f"target actions[0:5,0:5]: {actions[0:5,0:5]}")
+
+        loss = self.loss(policy_actions, actions)
+
+        #print(f'type(loss): {type(loss)}')
+        #print(f'loss size: {loss.size()}')
+        #print(f'loss: {loss}')
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        #print(f'mean_net out layer weight after step: "{self.mean_net.layer_1.weight[0:5,0:5]}"')
+
         return {
             # You can add extra logging information here, but keep this line
             'Training Loss': ptu.to_numpy(loss),
